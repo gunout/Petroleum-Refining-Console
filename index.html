@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Petroleum Refining Console · Topping + Conversion</title>
+<style>
+  :root{
+    --fr-blue:#0055A4;--fr-blue-dark:#003F7D;--fr-blue-light:#E6EEF7;--fr-blue-soft:#B8CCE4;
+    --fr-red:#EF4135;--fr-red-dark:#C42B20;--fr-red-light:#FDE9E7;--fr-white:#FFFFFF;
+    --bg:#F4F7FB;--bg-2:#FFFFFF;--bg-3:#EEF3F9;
+    --panel:#FFFFFF;--panel-2:#F7FAFD;--panel-3:#EAF1F8;
+    --border:#D6E0EC;--border-2:#B8CCE4;
+    --text:#0B2545;--text-2:#2C4A6E;--text-3:#6B7F98;
+    --accent:#0055A4;--accent-soft:#E6EEF7;
+    --green:#1B7F4B;--green-soft:#E3F5EC;
+    --yellow:#B8860B;--yellow-soft:#FBF1D9;
+    --orange:#D97706;--red:#EF4135;--red-soft:#FDE9E7;
+    --purple:#6B4FBB;--purple-soft:#EFE9FB;
+    --cyan:#0E7490;--brown:#8B5E34;--brown-soft:#F5EDE4;
+    --radius:6px;--radius-lg:10px;
+    --mono:'SF Mono','JetBrains Mono','Roboto Mono',Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',Roboto,sans-serif;
+    --shadow-sm:0 1px 2px rgba(11,37,69,.06);
+    --shadow-md:0 4px 12px rgba(11,37,69,.08);
+    --shadow-lg:0 12px 32px rgba(11,37,69,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  input,select,button{font-family:inherit;font-size:inherit;color:inherit}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:var(--bg-3)}
+  ::-webkit-scrollbar-thumb{background:var(--fr-blue-soft);border-radius:5px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--fr-blue)}
+
+  .tricolore-bar{position:fixed;top:0;left:0;right:0;height:3px;display:flex;z-index:9999}
+  .tricolore-bar span{flex:1;height:100%}
+  .tricolore-bar .b{background:var(--fr-blue)}
+  .tricolore-bar .w{background:var(--fr-white);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .tricolore-bar .r{background:var(--fr-red)}
+
+  .app-shell{display:grid;grid-template-columns:240px 1fr;grid-template-rows:52px 1fr 28px;
+    grid-template-areas:"topbar topbar" "sidebar main" "statusbar statusbar";
+    height:100vh;overflow:hidden;padding-top:3px}
+  @media(max-width:900px){.app-shell{grid-template-columns:1fr;grid-template-areas:"topbar" "main" "statusbar"}.sidebar{display:none}}
+
+  .topbar{grid-area:topbar;background:var(--bg-2);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;padding:0 16px;gap:16px;z-index:10;box-shadow:var(--shadow-sm)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:13px;letter-spacing:-.2px}
+  .brand-logo{width:28px;height:28px;border-radius:5px;overflow:hidden;display:flex;box-shadow:0 0 0 1px var(--border)}
+  .brand-logo span{flex:1}
+  .brand-logo .b{background:var(--fr-blue)} .brand-logo .w{background:var(--fr-white)} .brand-logo .r{background:var(--fr-red)}
+  .brand-sub{color:var(--text-3);font-weight:400;font-size:11px}
+  .topbar-divider{width:1px;height:22px;background:var(--border)}
+  .breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)}
+  .breadcrumb span.active{color:var(--fr-blue);font-weight:600}
+  .breadcrumb .sep{color:var(--border-2)}
+  .topbar-spacer{flex:1}
+  .topbar-actions{display:flex;align-items:center;gap:8px}
+  .conn-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);
+    font-family:var(--mono);padding:4px 10px;border-radius:4px;background:var(--green-soft);border:1px solid rgba(27,127,75,.25)}
+  .conn-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulseDot 2s infinite}
+  @keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.4}}
+  .icon-btn{width:32px;height:32px;border:1px solid var(--border);background:var(--bg-2);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;color:var(--text-2);transition:all .15s;font-size:14px}
+  .icon-btn:hover{background:var(--accent-soft);color:var(--fr-blue);border-color:var(--fr-blue)}
+  .btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-2);
+    color:var(--text);font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+  .btn:hover{background:var(--accent-soft);border-color:var(--fr-blue);color:var(--fr-blue)}
+  .btn.primary{background:var(--fr-blue);border-color:var(--fr-blue);color:white}
+  .btn.primary:hover{background:var(--fr-blue-dark);border-color:var(--fr-blue-dark)}
+  .btn.danger{color:var(--fr-red);border-color:rgba(239,65,53,.3);background:white}
+  .btn.danger:hover{background:var(--fr-red-soft);border-color:var(--fr-red)}
+
+  .sidebar{grid-area:sidebar;background:var(--bg-2);border-right:1px solid var(--border);overflow-y:auto;padding:12px 8px}
+  .nav-section{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);
+    padding:12px 10px 6px;font-weight:700}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;color:var(--text-2);
+    cursor:pointer;font-size:12.5px;font-weight:500;transition:all .12s;border:1px solid transparent;
+    width:100%;background:transparent;text-align:left;position:relative}
+  .nav-item:hover{background:var(--accent-soft);color:var(--fr-blue)}
+  .nav-item.active{background:var(--accent-soft);color:var(--fr-blue);border-color:var(--fr-blue-soft);font-weight:600}
+  .nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:3px;height:18px;background:var(--fr-blue);border-radius:0 3px 3px 0}
+  .nav-item .nav-icon{width:16px;text-align:center;font-size:13px;opacity:.9}
+  .nav-item .nav-badge{margin-left:auto;font-size:10px;font-family:var(--mono);background:var(--bg-3);
+    padding:1px 6px;border-radius:8px;color:var(--text-3)}
+  .nav-item.active .nav-badge{background:var(--fr-blue);color:white}
+
+  .main{grid-area:main;overflow-y:auto;padding:20px 24px;background:var(--bg)}
+  .page{display:none}
+  .page.active{display:block;animation:fadeIn .2s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  .page-header{margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;
+    flex-wrap:wrap;gap:12px;padding-bottom:16px;border-bottom:2px solid var(--fr-blue);position:relative}
+  .page-header::after{content:'';position:absolute;bottom:-2px;left:0;width:60px;height:2px;background:var(--fr-red)}
+  .page-header h1{font-size:18px;font-weight:700;letter-spacing:-.3px;color:var(--fr-blue-dark)}
+  .page-header p{color:var(--text-3);font-size:12px;margin-top:2px}
+  .page-header-actions{display:flex;gap:8px}
+
+  .grid{display:grid;gap:16px}
+  .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  @media(max-width:1200px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:900px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);
+    overflow:hidden;transition:border-color .15s,box-shadow .15s;box-shadow:var(--shadow-sm)}
+  .panel:hover{border-color:var(--fr-blue-soft);box-shadow:var(--shadow-md)}
+  .panel-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;
+    border-bottom:1px solid var(--border);background:var(--panel-2)}
+  .panel-header h2{font-size:12.5px;font-weight:700;letter-spacing:-.1px;display:flex;align-items:center;
+    gap:8px;color:var(--fr-blue-dark)}
+  .panel-header h2::before{content:'';width:3px;height:14px;background:var(--fr-blue);border-radius:2px}
+  .panel-header .panel-meta{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+  .panel-body{padding:16px}
+  .panel-body.flush{padding:0}
+
+  .kpi{padding:14px 16px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);
+    transition:all .15s;position:relative;overflow:hidden;box-shadow:var(--shadow-sm)}
+  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--fr-blue) 0%,var(--fr-blue) 33%,var(--fr-white) 33%,var(--fr-white) 66%,var(--fr-red) 66%,var(--fr-red) 100%)}
+  .kpi:hover{border-color:var(--fr-blue);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+  .kpi-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-3);
+    font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .kpi-value{font-size:22px;font-weight:700;letter-spacing:-.5px;margin:6px 0 4px;
+    font-family:var(--mono);color:var(--fr-blue-dark)}
+  .kpi-value small{font-size:12px;color:var(--text-3);font-weight:500;margin-left:2px}
+  .kpi-sub{font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:6px}
+
+  .table{width:100%;border-collapse:collapse;font-size:12px}
+  .table th{text-align:left;padding:8px 12px;font-size:10.5px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--fr-blue-dark);border-bottom:2px solid var(--fr-blue-soft);
+    background:var(--panel-2);white-space:nowrap}
+  .table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text-2)}
+  .table tbody tr:hover td{background:var(--accent-soft);color:var(--text)}
+  .table tbody tr:last-child td{border-bottom:none}
+  .table .num{text-align:right;font-family:var(--mono)}
+  .table .accent{color:var(--fr-blue);font-weight:600}
+  .table .mono{font-family:var(--mono)}
+
+  .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:10.5px;
+    font-weight:700;font-family:var(--mono);letter-spacing:.2px}
+  .tag::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+  .tag.green{background:var(--green-soft);color:var(--green)}
+  .tag.yellow{background:var(--yellow-soft);color:var(--yellow)}
+  .tag.orange{background:#FDF0E1;color:var(--orange)}
+  .tag.red{background:var(--fr-red-soft);color:var(--fr-red-dark)}
+  .tag.blue{background:var(--accent-soft);color:var(--fr-blue)}
+  .tag.purple{background:var(--purple-soft);color:var(--purple)}
+  .tag.brown{background:var(--brown-soft);color:var(--brown)}
+  .tag.gray{background:var(--bg-3);color:var(--text-3)}
+
+  .field{margin-bottom:14px} .field:last-child{margin-bottom:0}
+  .field-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .field-label{font-size:11.5px;color:var(--text-2);font-weight:600}
+  .field-value{font-family:var(--mono);font-size:11.5px;color:var(--fr-blue);font-weight:700}
+  input[type="range"]{width:100%;height:4px;-webkit-appearance:none;background:var(--bg-3);border-radius:2px;outline:none;cursor:pointer}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:var(--fr-blue);border:2px solid white;box-shadow:0 0 0 1px var(--fr-blue),0 0 8px rgba(0,85,164,.3);cursor:pointer;transition:transform .12s}
+  input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+  select,input[type="number"],input[type="text"]{width:100%;padding:6px 10px;background:var(--bg-2);
+    border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;
+    font-family:var(--mono);outline:none;transition:border-color .15s}
+  select:focus,input:focus{border-color:var(--fr-blue);box-shadow:0 0 0 3px rgba(0,85,164,.1)}
+
+  .value-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+  .value-item{padding:10px 12px;background:var(--panel-2);border-radius:6px;border:1px solid transparent;transition:all .15s}
+  .value-item:hover{border-color:var(--fr-blue-soft);background:var(--accent-soft)}
+  .value-item .v-label{font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+  .value-item .v-value{font-size:14px;font-weight:700;font-family:var(--mono);color:var(--fr-blue);margin-top:3px;letter-spacing:-.2px}
+  .value-item .v-value.green{color:var(--green)}
+  .value-item .v-value.yellow{color:var(--yellow)}
+  .value-item .v-value.red{color:var(--fr-red)}
+  .value-item .v-value.purple{color:var(--purple)}
+
+  .alert{display:flex;gap:10px;padding:10px 12px;border-radius:6px;font-size:12px;line-height:1.5;
+    border:1px solid;margin-top:12px;border-left-width:4px}
+  .alert-icon{flex-shrink:0;font-size:14px}
+  .alert.info{background:var(--accent-soft);border-color:var(--fr-blue-soft);border-left-color:var(--fr-blue);color:var(--text-2)}
+  .alert.warn{background:var(--yellow-soft);border-color:#EFD9A0;border-left-color:var(--yellow);color:var(--text-2)}
+  .alert.danger{background:var(--fr-red-soft);border-color:#F5B7B1;border-left-color:var(--fr-red);color:var(--text-2)}
+  .alert.success{background:var(--green-soft);border-color:#A7DCC3;border-left-color:var(--green);color:var(--text-2)}
+  .alert strong{color:var(--text)}
+
+  .chart-wrap{position:relative;width:100%}
+  .chart-wrap canvas{display:block;width:100%}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:11px;color:var(--text-3)}
+  .chart-legend-item{display:flex;align-items:center;gap:6px}
+  .chart-legend-dot{width:10px;height:3px;border-radius:2px}
+
+  .pfd{display:flex;align-items:center;gap:0;padding:24px 16px;background:var(--panel-2);
+    border-radius:8px;overflow-x:auto;border:1px solid var(--border)}
+  .pfd-node{flex-shrink:0;padding:10px 14px;background:white;border:2px solid var(--border-2);border-radius:6px;
+    font-size:11.5px;font-weight:700;font-family:var(--mono);text-align:center;min-width:90px;
+    transition:all .15s;cursor:default;color:var(--text-2)}
+  .pfd-node:hover{border-color:var(--fr-blue);box-shadow:0 0 0 3px rgba(0,85,164,.1);color:var(--fr-blue)}
+  .pfd-node.accent{border-color:var(--fr-blue);color:var(--fr-blue);background:var(--accent-soft)}
+  .pfd-node.purple{border-color:var(--purple);color:var(--purple);background:var(--purple-soft)}
+  .pfd-node.green{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+  .pfd-node.yellow{border-color:var(--yellow);color:var(--yellow);background:var(--yellow-soft)}
+  .pfd-node.red{border-color:var(--fr-red);color:var(--fr-red);background:var(--fr-red-soft)}
+  .pfd-node.brown{border-color:var(--brown);color:var(--brown);background:var(--brown-soft)}
+  .pfd-arrow{flex-shrink:0;color:var(--fr-blue-soft);padding:0 8px;font-size:14px;font-weight:700}
+
+  .gauge{padding:12px;background:var(--panel-2);border-radius:8px;text-align:center;
+    transition:all .15s;border:1px solid transparent}
+  .gauge:hover{background:var(--accent-soft);border-color:var(--fr-blue-soft)}
+  .gauge-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);font-weight:700}
+  .gauge-value{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--fr-blue-dark);margin:4px 0 6px;letter-spacing:-.3px}
+  .gauge-bar{height:4px;background:var(--bg-3);border-radius:2px;overflow:hidden}
+  .gauge-fill{height:100%;background:var(--fr-blue);border-radius:2px;transition:width .3s ease}
+  .gauge-fill.green{background:var(--green)}
+  .gauge-fill.yellow{background:var(--yellow)}
+  .gauge-fill.red{background:var(--fr-red)}
+
+  .statusbar{grid-area:statusbar;background:var(--fr-blue-dark);color:rgba(255,255,255,.85);
+    display:flex;align-items:center;padding:0 16px;font-size:11px;font-family:var(--mono);gap:16px;position:relative}
+  .statusbar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--fr-blue) 0%,var(--fr-blue) 33%,var(--fr-white) 33%,var(--fr-white) 66%,var(--fr-red) 66%,var(--fr-red) 100%)}
+  .statusbar .sb-item{display:flex;align-items:center;gap:6px}
+  .statusbar .sb-dot{width:6px;height:6px;border-radius:50%}
+  .statusbar .sb-dot.green{background:#4ADE80;box-shadow:0 0 4px #4ADE80}
+  .statusbar .sb-spacer{flex:1}
+
+  .toast-container{position:fixed;bottom:40px;right:20px;display:flex;flex-direction:column;gap:8px;
+    z-index:1000;pointer-events:none}
+  .toast{background:white;border:1px solid var(--border);border-left:4px solid var(--fr-blue);
+    padding:10px 14px;border-radius:6px;font-size:12px;box-shadow:var(--shadow-lg);min-width:240px;
+    max-width:360px;pointer-events:auto;animation:slideIn .25s ease;display:flex;gap:10px;align-items:flex-start}
+  .toast.success{border-left-color:var(--green)}
+  .toast.warn{border-left-color:var(--yellow)}
+  .toast.error{border-left-color:var(--fr-red)}
+  .toast-title{font-weight:700;color:var(--fr-blue-dark);font-size:12px}
+  .toast-msg{color:var(--text-3);font-size:11px;margin-top:1px}
+  @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(11,37,69,.5);backdrop-filter:blur(2px);
+    display:none;align-items:center;justify-content:center;z-index:500;padding:20px}
+  .modal-overlay.visible{display:flex}
+  .modal{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);
+    max-width:560px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-lg);position:relative}
+  .modal::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--fr-blue) 0%,var(--fr-blue) 33%,var(--fr-white) 33%,var(--fr-white) 66%,var(--fr-red) 66%,var(--fr-red) 100%)}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px;
+    border-bottom:1px solid var(--border)}
+  .modal-header h3{font-size:14px;font-weight:700;color:var(--fr-blue-dark)}
+  .modal-close{background:none;border:none;color:var(--text-3);font-size:20px;width:28px;height:28px;
+    border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .modal-close:hover{background:var(--fr-red-soft);color:var(--fr-red)}
+  .modal-body{padding:18px;font-size:12.5px;color:var(--text-2);line-height:1.6}
+  .modal-body h4{font-size:12.5px;color:var(--fr-blue-dark);margin:12px 0 6px}
+  .modal-body ul{margin-left:18px;margin-top:6px}
+  .modal-body li{margin-bottom:4px}
+
+  .tooltip{position:fixed;background:var(--fr-blue-dark);color:white;padding:8px 12px;border-radius:6px;
+    font-size:11.5px;max-width:260px;pointer-events:none;opacity:0;transition:opacity .12s;
+    z-index:1000;box-shadow:var(--shadow-lg);line-height:1.5;font-family:var(--mono)}
+  .tooltip.visible{opacity:1}
+  .tooltip strong{color:#7CB8FF}
+
+  .formula{background:var(--panel-2);border-left:3px solid var(--fr-blue);padding:10px 14px;
+    border-radius:4px;font-family:var(--mono);font-size:12.5px;margin:8px 0;color:var(--fr-blue-dark);overflow-x:auto}
+
+  .column-viz{display:flex;justify-content:center;padding:20px;background:var(--panel-2);border-radius:8px;
+    border:1px solid var(--border)}
+
+  .mt-8{margin-top:8px} .mt-12{margin-top:12px} .mt-16{margin-top:16px}
+  .text-muted{color:var(--text-3)} .text-green{color:var(--green)} .text-red{color:var(--fr-red)}
+  .mono{font-family:var(--mono)}
+
+  @media print{.topbar,.sidebar,.statusbar,.btn,.icon-btn{display:none!important}
+    .app-shell{display:block;height:auto}.main{padding:0;overflow:visible}.panel{break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<div class="tricolore-bar"><span class="b"></span><span class="w"></span><span class="r"></span></div>
+
+<div class="app-shell">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-logo"><span class="b"></span><span class="w"></span><span class="r"></span></div>
+      <div>
+        <div>Petroleum Refining Console</div>
+        <div class="brand-sub">Topping + Conversion · v3.0</div>
+      </div>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="breadcrumb">
+      <span>Raffinerie</span><span class="sep">/</span>
+      <span>Unité 200 kbpd</span><span class="sep">/</span>
+      <span class="active" id="crumbPage">Vue d'ensemble</span>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-actions">
+      <div class="conn-status"><div class="conn-dot"></div><span>DCS LIVE</span></div>
+      <button class="btn" id="exportBtn">📥 Export</button>
+      <button class="icon-btn" id="printBtn">🖨</button>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="nav-section">Analyse</div>
+    <button class="nav-item active" data-page="overview"><span class="nav-icon">📊</span>Vue d'ensemble</button>
+    <button class="nav-item" data-page="tbp"><span class="nav-icon">📈</span>Courbe TBP</button>
+    <button class="nav-item" data-page="distillation"><span class="nav-icon">🏭</span>Distillation</button>
+    <button class="nav-item" data-page="thermo"><span class="nav-icon">🌡️</span>Thermodynamique</button>
+    <div class="nav-section">Conversion</div>
+    <button class="nav-item" data-page="refining"><span class="nav-icon">⚗️</span>FCC / Reformage</button>
+    <button class="nav-item" data-page="economy"><span class="nav-icon">💰</span>Économie & marges</button>
+    <button class="nav-item" data-page="safety"><span class="nav-icon">⚠️</span>Sécurité HAZOP</button>
+    <button class="nav-item" data-page="specs"><span class="nav-icon">📋</span>Normes carburants</button>
+    <div class="nav-section">Ressources</div>
+    <button class="nav-item" data-page="docs"><span class="nav-icon">📚</span>Documentation</button>
+  </aside>
+
+  <main class="main">
+
+    <!-- OVERVIEW -->
+    <section class="page active" id="page-overview">
+      <div class="page-header">
+        <div>
+          <h1>Vue d'ensemble · Raffinerie 200 kbpd</h1>
+          <p>Brut Arab Light · API 33 · S 1,8 % · Topping + FCC + Reformage + HDT</p>
+        </div>
+        <div class="page-header-actions"><span class="tag green">Opérationnelle</span></div>
+      </div>
+
+      <div class="grid grid-4">
+        <div class="kpi">
+          <div class="kpi-label">Prix Brent <span class="tag blue">ICE</span></div>
+          <div class="kpi-value">82,5 <small>$/bbl</small></div>
+          <div class="kpi-sub">≈ 518 $/t · 0,52 $/L équivalent brut</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Gravité API <span class="tag brown">brut</span></div>
+          <div class="kpi-value">33,0</div>
+          <div class="kpi-sub">SG 0,860 · 7,5 bbl/t</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Teneur soufre <span class="tag orange">S</span></div>
+          <div class="kpi-value">1,80 <small>% pds</small></div>
+          <div class="kpi-sub">Brut acide · HDT obligatoire</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Marge de raffinage <span class="tag green">NCM</span></div>
+          <div class="kpi-value">9,4 <small>$/bbl</small></div>
+          <div class="kpi-sub">Crack spread 3-2-1 · Brent Moyen-Orient</div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 mt-16">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Bilan matière du brut</h2>
+            <span class="panel-meta">Arab Light · 100 000 t/j</span>
+          </div>
+          <div class="panel-body">
+            <div class="pfd" style="justify-content:center;padding:20px 12px;">
+              <div class="pfd-node brown">Brut<br><small style="opacity:.7">100 %</small></div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node accent">Topping<br><small style="opacity:.7">380 °C</small></div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node">Atm.<br><small style="opacity:.7">+ VS</small></div>
+            </div>
+            <div class="value-grid mt-12">
+              <div class="value-item"><div class="v-label">GPL (C₁-C₄)</div><div class="v-value">2,5 %</div></div>
+              <div class="value-item"><div class="v-label">Naphta/Essence</div><div class="v-value">22,0 %</div></div>
+              <div class="value-item"><div class="v-label">Kérosène</div><div class="v-value">9,5 %</div></div>
+              <div class="value-item"><div class="v-label">Gasoil</div><div class="v-value">19,0 %</div></div>
+              <div class="value-item"><div class="v-label">Fioul lourd</div><div class="v-value">22,0 %</div></div>
+              <div class="value-item"><div class="v-label">Résidus</div><div class="v-value red">25,0 %</div></div>
+            </div>
+            <div class="alert info">
+              <span class="alert-icon">ℹ️</span>
+              <div>Le résidu atmosphérique (25 %) est envoyé en <strong>distillation sous vide</strong> puis en <strong>FCC</strong> ou <strong>cokéfaction</strong> pour maximiser la conversion en distillats moyens.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Schéma de procédé (PFD)</h2>
+            <span class="panel-meta">Topping + Conversion</span>
+          </div>
+          <div class="panel-body">
+            <div class="pfd">
+              <div class="pfd-node brown" data-tooltip="<strong>Brut</strong><br>Arab Light API 33 · S 1,8 %">Brut</div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node accent" data-tooltip="<strong>Topping</strong><br>Distillation atmosphérique 380 °C">Topping</div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node" data-tooltip="<strong>Four sous vide</strong><br>10–30 mmHg">VS</div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node purple" data-tooltip="<strong>FCC</strong><br>Craquage catalytique fluide 520 °C">FCC</div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node green" data-tooltip="<strong>Alkylation</strong><br>Isobutane + oléfines → iso-octane">Alkyl.</div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node accent" data-tooltip="<strong>Essence finale</strong><br>RON 95 · EN 228">Essence</div>
+            </div>
+            <div class="pfd mt-8" style="padding-top:12px;padding-bottom:12px;">
+              <div class="pfd-node yellow" data-tooltip="<strong>Naphta lourd</strong><br>90–180 °C">Naphta</div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node purple" data-tooltip="<strong>Reformage catalytique</strong><br>Pt-Re/Al₂O₃ · 500 °C">Réf.</div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node green" data-tooltip="<strong>Essence reformée</strong><br>RON 98 · aromatiques">Réformat</div>
+              <div class="pfd-arrow">+</div>
+              <div class="pfd-node yellow" data-tooltip="<strong>Gasoil atmosphérique</strong><br>230–350 °C">Gasoil</div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node red" data-tooltip="<strong>Hydrodésulfuration</strong><br>CoMo/Al₂O₃ · 350 °C · 30 bar">HDT</div>
+              <div class="pfd-arrow">→</div>
+              <div class="pfd-node accent" data-tooltip="<strong>Gasoil EN 590</strong><br>S ≤ 10 ppm">Gasoil</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel mt-16">
+        <div class="panel-header"><h2>Débouchés produits</h2><span class="panel-meta">4 marchés</span></div>
+        <div class="panel-body">
+          <div class="grid grid-4">
+            <div class="kpi" style="cursor:pointer" data-modal="m-fuel">
+              <div class="kpi-label">⛽ Carburants</div>
+              <div class="kpi-sub mt-8">Essence 95/98, gazole, Jet A-1, GPL carburant.</div>
+            </div>
+            <div class="kpi" style="cursor:pointer" data-modal="m-petrochem">
+              <div class="kpi-label">🧪 Pétrochimie</div>
+              <div class="kpi-sub mt-8">Naphta vapocraqué → éthylène, propylène, aromatiques.</div>
+            </div>
+            <div class="kpi" style="cursor:pointer" data-modal="m-lubricants">
+              <div class="kpi-label">🛢️ Lubrifiants</div>
+              <div class="kpi-sub mt-8">Huiles de base Groupe I/II/III · paraffines.</div>
+            </div>
+            <div class="kpi" style="cursor:pointer" data-modal="m-asphalt">
+              <div class="kpi-label">🛣️ Bitumes</div>
+              <div class="kpi-sub mt-8">Résidus sous vide · routes, étanchéité.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TBP -->
+    <section class="page" id="page-tbp">
+      <div class="page-header">
+        <div>
+          <h1>Courbe TBP & points de coupe</h1>
+          <p>True Boiling Point · distillation laboratoire · coupes industrielles</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="panel">
+          <div class="panel-header"><h2>Paramètres des coupes</h2><span class="panel-meta">TBP équivalent</span></div>
+          <div class="panel-body">
+            <div class="field">
+              <div class="field-header"><span class="field-label">Coupe essence/kérosène</span><span class="field-value" id="cp1Val">180 °C</span></div>
+              <input type="range" id="cp1" min="140" max="220" value="180" step="5">
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Coupe kérosène/gasoil</span><span class="field-value" id="cp2Val">230 °C</span></div>
+              <input type="range" id="cp2" min="200" max="270" value="230" step="5">
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Coupe gasoil/foiul</span><span class="field-value" id="cp3Val">350 °C</span></div>
+              <input type="range" id="cp3" min="320" max="390" value="350" step="5">
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Coupe fioul/résidus</span><span class="field-value" id="cp4Val">500 °C</span></div>
+              <input type="range" id="cp4" min="460" max="540" value="500" step="5">
+            </div>
+            <div class="alert info mt-12">
+              <span class="alert-icon">ℹ️</span>
+              <div>Les coupes TBP sont converties en coupes industrielles par ajustement (efficacité ~85 %). Le <strong>gap</strong> entre coupes est optimisé économiquement.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Rendements massiques</h2><span class="panel-meta">% pds brut</span></div>
+          <div class="panel-body flush">
+            <table class="table">
+              <thead><tr><th>Coupe</th><th class="num">TBP</th><th class="num">Rdt</th><th class="num">SG</th></tr></thead>
+              <tbody>
+                <tr><td><span class="tag blue">GPL</span></td><td class="num mono">&lt; 30 °C</td><td class="num accent" id="y-gpl">2,5 %</td><td class="num mono">0,55</td></tr>
+                <tr><td><span class="tag yellow">Essence</span></td><td class="num mono" id="t-ess">30–180 °C</td><td class="num accent" id="y-ess">22,0 %</td><td class="num mono">0,74</td></tr>
+                <tr><td><span class="tag green">Kérosène</span></td><td class="num mono" id="t-ker">180–230 °C</td><td class="num accent" id="y-ker">9,5 %</td><td class="num mono">0,80</td></tr>
+                <tr><td><span class="tag orange">Gasoil</span></td><td class="num mono" id="t-gaz">230–350 °C</td><td class="num accent" id="y-gaz">19,0 %</td><td class="num mono">0,85</td></tr>
+                <tr><td><span class="tag brown">Fioul</span></td><td class="num mono" id="t-fio">350–500 °C</td><td class="num accent" id="y-fio">22,0 %</td><td class="num mono">0,92</td></tr>
+                <tr><td><span class="tag red">Résidus</span></td><td class="num mono" id="t-res">&gt; 500 °C</td><td class="num accent" id="y-res">25,0 %</td><td class="num mono">1,02</td></tr>
+              </tbody>
+            </table>
+            <div class="panel-body">
+              <div class="value-grid">
+                <div class="value-item"><div class="v-label">Rdt total distillats</div><div class="v-value green" id="tot-mid">50,5 %</div></div>
+                <div class="value-item"><div class="v-label">Rdt essence + GPL</div><div class="v-value" id="tot-light">24,5 %</div></div>
+                <div class="value-item"><div class="v-label">Résidu sous vide</div><div class="v-value red" id="tot-heavy">25,0 %</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel mt-16">
+        <div class="panel-header"><h2>Courbe TBP</h2><span class="panel-meta">T (°C) vs % pds distillé</span></div>
+        <div class="panel-body">
+          <div class="chart-wrap" style="height:340px"><canvas id="chartTBP"></canvas></div>
+          <div class="chart-legend">
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#0055A4"></div>GPL</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#B8860B"></div>Essence</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#1B7F4B"></div>Kérosène</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#D97706"></div>Gasoil</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#8B5E34"></div>Fioul</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:#EF4135"></div>Résidus</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DISTILLATION -->
+    <section class="page" id="page-distillation">
+      <div class="page-header">
+        <div>
+          <h1>Colonne de distillation atmosphérique</h1>
+          <p>Topping · 40 plateaux · reflux · profil de température</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn primary" id="playDist">▶ Démarrer</button>
+          <button class="btn danger" id="resetDist">Réinitialiser</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Profil de la colonne</h2>
+          <span class="panel-meta">t = <span id="distTime">0,0</span> s</span>
+        </div>
+        <div class="panel-body">
+          <canvas id="distCanvas" style="width:100%;height:420px;display:block;background:var(--panel-2);border-radius:8px;border:1px solid var(--border);"></canvas>
+          <div class="grid grid-4 mt-12">
+            <div class="gauge"><div class="gauge-label">Tête (°C)</div><div class="gauge-value" id="gaugeTop">38 °C</div><div class="gauge-bar"><div class="gauge-fill" id="gaugeTopBar" style="width:10%"></div></div></div>
+            <div class="gauge"><div class="gauge-label">Reflux</div><div class="gauge-value" id="gaugeRef">2,5</div><div class="gauge-bar"><div class="gauge-fill" id="gaugeRefBar" style="width:50%"></div></div></div>
+            <div class="gauge"><div class="gauge-label">Essence RON</div><div class="gauge-value" id="gaugeOct">62</div><div class="gauge-bar"><div class="gauge-fill green" id="gaugeOctBar" style="width:62%"></div></div></div>
+            <div class="gauge"><div class="gauge-label">Débit traité</div><div class="gauge-value" id="gaugeFlow">0 kbpd</div><div class="gauge-bar"><div class="gauge-fill" id="gaugeFlowBar" style="width:0%"></div></div></div>
+          </div>
+          <div class="grid grid-2 mt-12">
+            <div class="field">
+              <div class="field-header"><span class="field-label">Taux de reflux R</span><span class="field-value" id="reflVal">2,5</span></div>
+              <input type="range" id="refl" min="1" max="5" value="2.5" step="0.1">
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Débit alimentation</span><span class="field-value" id="feedVal">200 kbpd</span></div>
+              <input type="range" id="feed" min="100" max="300" value="200" step="5">
+            </div>
+          </div>
+          <div class="alert info mt-12">
+            <span class="alert-icon">ℹ️</span>
+            <div>Le brut préchauffé entre au <strong>plateau d'alimentation</strong> (flash zone ~365 °C). Les vapeurs montent, les liquides descendent. Les coupes sont soutirées latéralement (essence, kérosène, gasoil). Le résidu atmosphérique (bottoms) est envoyé en four sous vide.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- THERMO -->
+    <section class="page" id="page-thermo">
+      <div class="page-header">
+        <div>
+          <h1>Thermodynamique & caractérisation</h1>
+          <p>API · SG · Antoine · équilibre liquide-vapeur</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="panel">
+          <div class="panel-header"><h2>Gravité API & densité</h2><span class="panel-meta">15,6 °C</span></div>
+          <div class="panel-body">
+            <div class="formula">API = 141,5 / SG − 131,5 &nbsp;&nbsp;·&nbsp;&nbsp; SG = ρ / ρ<sub>eau</sub></div>
+            <div class="field mt-12">
+              <div class="field-header"><span class="field-label">Densité SG</span><span class="field-value" id="sgVal">0,8600</span></div>
+              <input type="range" id="sg" min="0.75" max="1.05" value="0.860" step="0.001">
+            </div>
+            <div class="value-grid mt-12">
+              <div class="value-item"><div class="v-label">API</div><div class="v-value" id="apiVal">33,0</div></div>
+              <div class="value-item"><div class="v-label">ρ (kg/m³)</div><div class="v-value" id="rhoVal">860</div></div>
+              <div class="value-item"><div class="v-label">bbl / tonne</div><div class="v-value" id="bblVal">7,30</div></div>
+              <div class="value-item"><div class="v-label">Classement</div><div class="v-value yellow" id="classVal">Moyen</div></div>
+            </div>
+            <div class="alert info mt-12">
+              <span class="alert-icon">ℹ️</span>
+              <div>Classification : <strong>light</strong> (API &gt; 35), <strong>medium</strong> (25–35), <strong>heavy</strong> (&lt; 25). Couplée à la teneur en soufre (sweet &lt; 0,5 %, sour &gt; 0,5 %), elle définit le prix du brut.</div>
+            </div>
+            <div class="chart-wrap mt-12" style="height:160px"><canvas id="chartAPI"></canvas></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Antoine · pression de vapeur</h2><span class="panel-meta">P° de composés purs</span></div>
+          <div class="panel-body">
+            <div class="formula">log₁₀ P° = A − B / (C + T) &nbsp;&nbsp;(P en bar, T en K)</div>
+            <div class="field mt-12">
+              <span class="field-label" style="display:block;margin-bottom:6px">Composé</span>
+              <select id="comp">
+                <option value="hexane">n-Hexane (C₆H₁₄)</option>
+                <option value="heptane">n-Heptane (C₇H₁₆)</option>
+                <option value="octane" selected>n-Octane (C₈H₁₈)</option>
+                <option value="decane">n-Décane (C₁₀H₂₂)</option>
+                <option value="benzene">Benzène (C₆H₆)</option>
+                <option value="toluene">Toluène (C₇H₈)</option>
+                <option value="water">Eau (H₂O)</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Température</span><span class="field-value" id="tAntVal">400 K</span></div>
+              <input type="range" id="tAnt" min="273" max="700" value="400" step="1">
+            </div>
+            <div class="value-grid mt-12">
+              <div class="value-item"><div class="v-label">P° vapeur</div><div class="v-value" id="pAntVal">0,15 bar</div></div>
+              <div class="value-item"><div class="v-label">T<sub>éb</sub> à 1 bar</div><div class="v-value" id="tbVal">398,8 K</div></div>
+              <div class="value-item"><div class="v-label">ΔH<sub>vap</sub> (Trouton)</div><div class="v-value" id="hvapVal">41 kJ/mol</div></div>
+              <div class="value-item"><div class="v-label">État</div><div class="v-value green" id="stateVal">Vapeur</div></div>
+            </div>
+            <div class="chart-wrap mt-12" style="height:180px"><canvas id="chartAnt"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REFINING -->
+    <section class="page" id="page-refining">
+      <div class="page-header">
+        <div>
+          <h1>Unités de conversion</h1>
+          <p>FCC · Reformage catalytique · Hydrotraitement</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="panel">
+          <div class="panel-header"><h2>FCC · Craquage catalytique fluide</h2><span class="panel-meta">zéolithe Y · riser</span></div>
+          <div class="panel-body">
+            <div class="field">
+              <div class="field-header"><span class="field-label">T° riser</span><span class="field-value" id="fccTVal">525 °C</span></div>
+              <input type="range" id="fccT" min="490" max="560" value="525" step="1">
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Ratio C/O</span><span class="field-value" id="fccCVal">5,5</span></div>
+              <input type="range" id="fccC" min="3" max="10" value="5.5" step="0.1">
+            </div>
+            <div class="formula">X = 100 · [1 − exp(−k·(C/O)·τ)]<br>k = A · exp(−E<sub>a</sub>/RT) · E<sub>a</sub> ≈ 200 kJ/mol</div>
+            <div class="value-grid mt-12">
+              <div class="value-item"><div class="v-label">Conversion</div><div class="v-value green" id="fccConv">72 %</div></div>
+              <div class="value-item"><div class="v-label">Essence</div><div class="v-value" id="fccGas">48 %</div></div>
+              <div class="value-item"><div class="v-label">GPL (C₃/C₄)</div><div class="v-value" id="fccLPG">16 %</div></div>
+              <div class="value-item"><div class="v-label">Coke</div><div class="v-value red" id="fccCoke">5 %</div></div>
+            </div>
+            <div class="chart-wrap mt-12" style="height:180px"><canvas id="chartFCC"></canvas></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Reformage catalytique</h2><span class="panel-meta">Pt-Re/Al₂O₃</span></div>
+          <div class="panel-body">
+            <div class="field">
+              <div class="field-header"><span class="field-label">T° réacteur</span><span class="field-value" id="refTVal">500 °C</span></div>
+              <input type="range" id="refT" min="470" max="530" value="500" step="1">
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Pression</span><span class="field-value" id="refPVal">15 bar</span></div>
+              <input type="range" id="refP" min="5" max="30" value="15" step="1">
+            </div>
+            <div class="formula">Réactions : déshydrogénation naphtènes → aromatiques + H₂<br>Isomérisation · déshydrocyclisation</div>
+            <div class="value-grid mt-12">
+              <div class="value-item"><div class="v-label">RON produit</div><div class="v-value green" id="refRON">98</div></div>
+              <div class="value-item"><div class="v-label">Rendement C₅+</div><div class="v-value" id="refYield">87 %</div></div>
+              <div class="value-item"><div class="v-label">H₂ produit</div><div class="v-value" id="refH2">3,2 %</div></div>
+              <div class="value-item"><div class="v-label">Aromatiques</div><div class="v-value purple" id="refAro">65 %</div></div>
+            </div>
+            <div class="chart-wrap mt-12" style="height:180px"><canvas id="chartRef"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel mt-16">
+        <div class="panel-header"><h2>Hydrodésulfuration (HDT)</h2><span class="panel-meta">CoMo/Al₂O₃ · gasoil</span></div>
+        <div class="panel-body">
+          <div class="grid grid-2">
+            <div>
+              <div class="field">
+                <div class="field-header"><span class="field-label">P<sub>H₂</sub></span><span class="field-value" id="hdtPVal">30 bar</span></div>
+                <input type="range" id="hdtP" min="10" max="80" value="30" step="1">
+              </div>
+              <div class="field">
+                <div class="field-header"><span class="field-label">T° réacteur</span><span class="field-value" id="hdtTVal">350 °C</span></div>
+                <input type="range" id="hdtT" min="320" max="390" value="350" step="1">
+              </div>
+              <div class="formula">r<sub>HDS</sub> = k · [S]<sup>1</sup> · P<sub>H₂</sub><sup>1,5</sup><br>k = A · exp(−E<sub>a</sub>/RT) · E<sub>a</sub> ≈ 100 kJ/mol</div>
+            </div>
+            <div>
+              <div class="value-grid">
+                <div class="value-item"><div class="v-label">S résiduel</div><div class="v-value green" id="hdtS">8 ppm</div></div>
+                <div class="value-item"><div class="v-label">HDS</div><div class="v-value" id="hdtConv">99,6 %</div></div>
+                <div class="value-item"><div class="v-label">H₂ consommé</div><div class="v-value" id="hdtH2">120 Nm³/m³</div></div>
+                <div class="value-item"><div class="v-label">Conforme EN 590</div><div class="v-value green" id="hdtOk">OUI</div></div>
+              </div>
+              <div class="alert success mt-12">
+                <span class="alert-icon">✓</span>
+                <div>Le gasoil HDS produit respecte la spécification <strong>EN 590</strong> (S ≤ 10 ppm) pour un carburant B7/B10. L'hydrogène consommé est fourni par le reformeur (H₂ à 80–90 %).</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ECONOMY -->
+    <section class="page" id="page-economy">
+      <div class="page-header">
+        <div>
+          <h1>Économie du raffinage</h1>
+          <p>Crack spread · marge de raffinage · point mort</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="panel">
+          <div class="panel-header"><h2>Prix des produits</h2><span class="panel-meta">$/bbl</span></div>
+          <div class="panel-body">
+            <div class="field">
+              <div class="field-header"><span class="field-label">Brent (brut)</span><span class="field-value" id="pBrVal">82,5 $/bbl</span></div>
+              <input type="range" id="pBr" min="40" max="150" value="82.5" step="0.5">
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Essence 95</span><span class="field-value" id="pEssVal">98,0 $/bbl</span></div>
+              <input type="range" id="pEss" min="50" max="200" value="98" step="0.5">
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Gasoil EN 590</span><span class="field-value" id="pGazVal">102,0 $/bbl</span></div>
+              <input type="range" id="pGaz" min="50" max="200" value="102" step="0.5">
+            </div>
+            <div class="field">
+              <div class="field-header"><span class="field-label">Fioul lourd 1 % S</span><span class="field-value" id="pFioVal">70,0 $/bbl</span></div>
+              <input type="range" id="pFio" min="30" max="150" value="70" step="0.5">
+            </div>
+            <div class="formula mt-12">Crack spread 3-2-1 = (2·P<sub>ess</sub> + 1·P<sub>gaz</sub> − 3·P<sub>Brent</sub>) / 3</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Marge brute de raffinage</h2><span class="panel-meta">$/bbl</span></div>
+          <div class="panel-body">
+            <div class="chart-wrap" style="height:240px"><canvas id="chartMargin"></canvas></div>
+            <div class="value-grid mt-12">
+              <div class="value-item"><div class="v-label">Crack spread 3-2-1</div><div class="v-value green" id="crack">9,4 $/bbl</div></div>
+              <div class="value-item"><div class="v-label">OPEX raffinage</div><div class="v-value yellow">4,2 $/bbl</div></div>
+              <div class="value-item"><div class="v-label">Marge nette</div><div class="v-value green" id="margeNette">5,2 $/bbl</div></div>
+              <div class="value-item"><div class="v-label">Point mort</div><div class="v-value" id="breakeven">45 $/bbl</div></div>
+            </div>
+            <div class="alert warn mt-12">
+              <span class="alert-icon">⚠️</span>
+              <div>Une raffinerie européenne doit dégager <strong>&gt; 5 $/bbl de marge brute</strong> pour couvrir CAPEX + OPEX. Sous 3 $/bbl, arrêt économique ou reconversion (HVO, biodiesel, e-fuels).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel mt-16">
+        <div class="panel-header"><h2>CAPEX & investissements</h2><span class="panel-meta">200 kbpd · Europe</span></div>
+        <div class="panel-body flush">
+          <table class="table">
+            <thead><tr><th>Unité</th><th class="num">CAPEX</th><th class="num">Consommation</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Topping (CDU)</td><td class="num mono">450 M€</td><td class="num mono">—</td><td>Distillation atmosphérique</td></tr>
+              <tr><td>Vacuum (VDU)</td><td class="num mono">180 M€</td><td class="num mono">—</td><td>Distillation sous vide</td></tr>
+              <tr><td>FCC + Alky</td><td class="num mono">1,8 Md€</td><td class="num mono">~30 MW</td><td>Conversion profonde</td></tr>
+              <tr><td>Reformage + HDT</td><td class="num mono">950 M€</td><td class="num mono">~50 MW</td><td>Octane + désulfuration</td></tr>
+              <tr><td>Utilities & stockage</td><td class="num mono">1,2 Md€</td><td class="num mono">—</td><td>Vapeur, électricité, parcs</td></tr>
+              <tr><td><strong>TOTAL</strong></td><td class="num mono accent">~4,6 Md€</td><td class="num mono">~80 MW</td><td>Base 2018 · coût actuel ×1,3</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SAFETY -->
+    <section class="page" id="page-safety">
+      <div class="page-header">
+        <div>
+          <h1>Sécurité & analyse HAZOP</h1>
+          <p>Inflammabilité · H₂S · ATEX · zone 0/1/2</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="panel">
+          <div class="panel-header"><h2>Propriétés d'inflammabilité</h2><span class="panel-meta">survolez</span></div>
+          <div class="panel-body flush">
+            <table class="table">
+              <thead><tr><th>Coupe</th><th class="num">Flash pt</th><th class="num">LIE</th><th>Classe</th></tr></thead>
+              <tbody>
+                <tr data-tooltip="LIE 1,4 % · point éclair −43 °C · vapeurs denses"><td>GPL / essence</td><td class="num mono">−43 °C</td><td class="num mono">1,4 %</td><td><span class="tag red">Zone 0</span></td></tr>
+                <tr data-tooltip="Point éclair 38 °C · kérosène / Jet A-1"><td>Kérosène</td><td class="num mono">38 °C</td><td class="num mono">0,7 %</td><td><span class="tag orange">Zone 1</span></td></tr>
+                <tr data-tooltip="Point éclair 55 °C · gazole"><td>Gasoil</td><td class="num mono">55 °C</td><td class="num mono">0,6 %</td><td><span class="tag yellow">Zone 2</span></td></tr>
+                <tr data-tooltip="Point éclair 70 °C · fioul domestique"><td>Fioul lourd</td><td class="num mono">70 °C</td><td class="num mono">0,5 %</td><td><span class="tag yellow">Zone 2</span></td></tr>
+                <tr data-tooltip="Point éclair &gt; 100 °C · bitume"><td>Résidus</td><td class="num mono">&gt; 100 °C</td><td class="num mono">N.A.</td><td><span class="tag gray">Hors ATEX</span></td></tr>
+                <tr data-tooltip="H₂S · LIE 4,3 % · TLV 5 ppm · mortel à 300 ppm"><td>H₂S (HDS)</td><td class="num mono">−82 °C</td><td class="num mono">4,3 %</td><td><span class="tag red">Toxique</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Simulateur fuite H₂S · HDT</h2><span class="panel-meta" id="h2sStatus">Système nominal</span></div>
+          <div class="panel-body">
+            <div class="field">
+              <div class="field-header"><span class="field-label">Concentration H₂S</span><span class="field-value" id="h2sVal">0 ppm</span></div>
+              <input type="range" id="h2s" min="0" max="500" value="0" step="1">
+            </div>
+            <div class="grid grid-2 mt-8">
+              <div class="gauge">
+                <div class="gauge-label">Mesure</div>
+                <div class="gauge-value" id="h2sConc">0 ppm</div>
+                <div class="gauge-bar"><div class="gauge-fill" id="h2sBar" style="width:0%"></div></div>
+              </div>
+              <div class="gauge">
+                <div class="gauge-label">TLV (8 h)</div>
+                <div class="gauge-value text-yellow">5 ppm</div>
+                <div class="gauge-bar"><div class="gauge-fill yellow" style="width:1%"></div></div>
+              </div>
+            </div>
+            <div class="alert info" id="h2sNote">
+              <span class="alert-icon">ℹ️</span>
+              <div>Faites glisser pour simuler une fuite. Alarme à 5 ppm (TLV), évacuation à 50 ppm, mortel à 300 ppm.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel mt-16">
+        <div class="panel-header"><h2>Analyse HAZOP</h2><span class="panel-meta">6 nœuds · cliquez</span></div>
+        <div class="panel-body flush">
+          <table class="table">
+            <thead><tr><th>Nœud</th><th>Déviation</th><th>Cause</th><th>Conséquence</th><th>Barrière</th></tr></thead>
+            <tbody>
+              <tr data-modal="h1" style="cursor:pointer"><td class="mono">Four topping</td><td>T° haute</td><td>Défaut brûleurs</td><td>Craquage thermique, cokage</td><td><span class="tag blue">TIC + ESD</span></td></tr>
+              <tr data-modal="h2" style="cursor:pointer"><td class="mono">Colonne atm.</td><td>P haute</td><td>Perte condenseur</td><td>PSV, rejet vapeurs</td><td><span class="tag blue">PIC + PSV</span></td></tr>
+              <tr data-modal="h3" style="cursor:pointer"><td class="mono">Riser FCC</td><td>T° haute</td><td>Excès coke</td><td>Désactivation zéolithe</td><td><span class="tag blue">Régénération</span></td></tr>
+              <tr data-modal="h4" style="cursor:pointer"><td class="mono">HDT réacteur</td><td>H₂S fuite</td><td>Joint défaillant</td><td>Toxicité mortelle</td><td><span class="tag blue">Détecteurs H₂S</span></td></tr>
+              <tr data-modal="h5" style="cursor:pointer"><td class="mono">Soufflante H₂</td><td>Arrêt</td><td>Panne moteur</td><td>Emballement réacteur</td><td><span class="tag blue">Doublure + ESD</span></td></tr>
+              <tr data-modal="h6" style="cursor:pointer"><td class="mono">Torchère</td><td>Débit excessif</td><td>Panne procédé</td><td>Retombées liquides</td><td><span class="tag blue">Pilote + KO drum</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SPECS -->
+    <section class="page" id="page-specs">
+      <div class="page-header">
+        <div>
+          <h1>Normes carburants</h1>
+          <p>EN 228 · EN 590 · Jet A-1 · ASTM D86</p>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="panel">
+          <div class="panel-header"><h2>Essence EN 228</h2><span class="panel-meta">SP95 / SP98</span></div>
+          <div class="panel-body flush">
+            <table class="table">
+              <thead><tr><th>Paramètre</th><th class="num">SP95</th><th class="num">SP98</th><th>Méthode</th></tr></thead>
+              <tbody>
+                <tr><td>RON</td><td class="num accent">≥ 95</td><td class="num accent">≥ 98</td><td>ISO 5164</td></tr>
+                <tr><td>MON</td><td class="num accent">≥ 85</td><td class="num accent">≥ 88</td><td>ISO 5163</td></tr>
+                <tr><td>Indice octane</td><td class="num accent">≥ 90</td><td class="num accent">≥ 93</td><td>(RON+MON)/2</td></tr>
+                <tr><td>Plomb</td><td class="num accent">≤ 5 mg/L</td><td class="num accent">≤ 5 mg/L</td><td>EN 237</td></tr>
+                <tr><td>Soufre</td><td class="num accent">≤ 10 ppm</td><td class="num accent">≤ 10 ppm</td><td>EN ISO 20846</td></tr>
+                <tr><td>Benzène</td><td class="num accent">≤ 1 %</td><td class="num accent">≤ 1 %</td><td>EN 238</td></tr>
+                <tr><td>Aromatiques</td><td class="num accent">≤ 35 %</td><td class="num accent">≤ 35 %</td><td>EN 12916</td></tr>
+                <tr><td>Oléfines</td><td class="num accent">≤ 18 %</td><td class="num accent">≤ 18 %</td><td>EN 12916</td></tr>
+                <tr><td>Éthanol</td><td class="num accent">≤ 10 % v</td><td class="num accent">≤ 10 % v</td><td>EN 13132</td></tr>
+                <tr><td>P vapeur (été)</td><td class="num accent">45–60 kPa</td><td class="num accent">45–60 kPa</td><td>EN 13016-1</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h2>Gasoil EN 590 · B7/B10</h2><span class="panel-meta">Gazole routier</span></div>
+          <div class="panel-body flush">
+            <table class="table">
+              <thead><tr><th>Paramètre</th><th class="num">Valeur</th><th>Méthode</th></tr></thead>
+              <tbody>
+                <tr><td>Indice cétane</td><td class="num accent">≥ 51</td><td>EN ISO 4264</td></tr>
+                <tr><td>Densité (15 °C)</td><td class="num accent">820–845</td><td>EN ISO 3675</td></tr>
+                <tr><td>Soufre</td><td class="num accent">≤ 10 ppm</td><td>EN ISO 20846</td></tr>
+                <tr><td>Point éclair</td><td class="num accent">≥ 55 °C</td><td>EN ISO 2719</td></tr>
+                <tr><td>Point de trouble (hiver)</td><td class="num accent">≤ −10 °C</td><td>EN 23015</td></tr>
+                <tr><td>Point d'écoulement</td><td class="num accent">≤ −20 °C</td><td>EN ISO 3016</td></tr>
+                <tr><td>Viscosité à 40 °C</td><td class="num accent">2,0–4,5 mm²/s</td><td>EN ISO 3104</td></tr>
+                <tr><td>Distillation 95 %</td><td class="num accent">≤ 360 °C</td><td>EN ISO 3405</td></tr>
+                <tr><td>Résidu carboné</td><td class="num accent">≤ 0,30 %</td><td>EN ISO 10370</td></tr>
+                <tr><td>EMAG (FAME)</td><td class="num accent">≤ 7 % v (B7)</td><td>EN 14078</td></tr>
+                <tr><td>Eau</td><td class="num accent">≤ 200 mg/kg</td><td>EN ISO 12937</td></tr>
+                <tr><td>Cuivre (corrosion)</td><td class="num accent">Classe 1</td><td>EN ISO 2160</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel mt-16">
+        <div class="panel-header"><h2>Jet A-1 (DEF STAN 91-91)</h2><span class="panel-meta">Carburéacteur</span></div>
+        <div class="panel-body flush">
+          <table class="table">
+            <thead><tr><th>Paramètre</th><th class="num">Valeur</th><th>Méthode</th></tr></thead>
+            <tbody>
+              <tr><td>Densité 15 °C</td><td class="num accent">775–840 kg/m³</td><td>ASTM D4052</td></tr>
+              <tr><td>Point éclair</td><td class="num accent">≥ 38 °C</td><td>ASTM D93</td></tr>
+              <tr><td>Point de congélation</td><td class="num accent">≤ −47 °C</td><td>ASTM D2386</td></tr>
+              <tr><td>Viscosité −20 °C</td><td class="num accent">≤ 8,0 mm²/s</td><td>ASTM D445</td></tr>
+              <tr><td>Soufre total</td><td class="num accent">≤ 0,30 %</td><td>ASTM D2622</td></tr>
+              <tr><td>Mercaptans</td><td class="num accent">≤ 0,003 %</td><td>ASTM D3227</td></tr>
+              <tr><td>Corrosion cuivre</td><td class="num accent">Classe 1</td><td>ASTM D130</td></tr>
+              <tr><td>Point de fumée</td><td class="num accent">≥ 25 mm</td><td>ASTM D1322</td></tr>
+              <tr><td>Contenu H₂O</td><td class="num accent">≤ 75 ppm</td><td>ASTM D6304</td></tr>
+              <tr><td>Conductivité</td><td class="num accent">50–600 pS/m</td><td>ASTM D2624</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- DOCS -->
+    <section class="page" id="page-docs">
+      <div class="page-header">
+        <div>
+          <h1>Documentation technique</h1>
+          <p>Équations, conversions, références</p>
+        </div>
+      </div>
+      <div class="grid grid-3">
+        <div class="panel">
+          <div class="panel-header"><h2>Conversions clés</h2></div>
+          <div class="panel-body flush">
+            <table class="table"><tbody>
+              <tr><td>1 bbl</td><td class="num mono accent">158,987 L</td></tr>
+              <tr><td>1 bbl (US)</td><td class="num mono">42 US gal</td></tr>
+              <tr><td>1 tonne brut API 33</td><td class="num mono accent">≈ 7,30 bbl</td></tr>
+              <tr><td>1 t essence</td><td class="num mono">≈ 8,5 bbl</td></tr>
+              <tr><td>1 t gasoil</td><td class="num mono">≈ 7,45 bbl</td></tr>
+              <tr><td>1 kWh</td><td class="num mono">3,6 MJ</td></tr>
+              <tr><td>1 toe (tep)</td><td class="num mono">41,87 GJ</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h2>Équations</h2></div>
+          <div class="panel-body flush">
+            <table class="table"><tbody>
+              <tr><td>API</td><td class="num mono">141,5/SG − 131,5</td></tr>
+              <tr><td>Antoine</td><td class="num mono">log P° = A − B/(C+T)</td></tr>
+              <tr><td>Indice cétane</td><td class="num mono">D4737 (4 var.)</td></tr>
+              <tr><td>Crack spread</td><td class="num mono">2P<sub>e</sub>+P<sub>g</sub>−3P<sub>B</sub></td></tr>
+              <tr><td>FCC</td><td class="num mono">X = 1 − e<sup>−k·C/O·τ</sup></td></tr>
+              <tr><td>HDS</td><td class="num mono">r = k[S]P<sub>H₂</sub><sup>1,5</sup></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h2>Normes</h2></div>
+          <div class="panel-body flush">
+            <table class="table"><tbody>
+              <tr><td>Essence</td><td class="num mono">EN 228</td></tr>
+              <tr><td>Gasoil</td><td class="num mono">EN 590</td></tr>
+              <tr><td>Jet</td><td class="num mono">DEF STAN 91-91</td></tr>
+              <tr><td>Fioul</td><td class="num mono">EN 590 / ISO 8217</td></tr>
+              <tr><td>Distillation</td><td class="num mono">ASTM D86 / D1160</td></tr>
+              <tr><td>ATEX</td><td class="num mono">2014/34/UE</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel mt-16">
+        <div class="panel-header"><h2>Hypothèses du modèle</h2></div>
+        <div class="panel-body">
+          <div class="alert info">
+            <span class="alert-icon">ℹ️</span>
+            <div>
+              <strong>Courbe TBP :</strong> modèle polynomial T(W) = 30 + 4,5·W + 0,017·W² (représentatif d'un brut moyen).<br>
+              <strong>Antoine :</strong> coefficients NIST pour composés purs. Pour les coupes pétrolières, utiliser pseudo-composants.<br>
+              <strong>FCC :</strong> modèle 4-lump simplifié. Réel : 10-lump ou 19-lump cinétique.<br>
+              <strong>Économie :</strong> crack spread 3-2-1 standard. OPEX 4,2 $/bbl moyen Europe.<br>
+              <strong>Limites :</strong> modèle pédagogique. Projet réel → Aspen HYSYS Petroleum Refining, Spiral Suite, PIMS.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="statusbar">
+    <div class="sb-item"><div class="sb-dot green"></div>DCS Online</div>
+    <div class="sb-item">Modèle : Petroleum-Ref v3.0</div>
+    <div class="sb-item">Unité : SI + API</div>
+    <div class="sb-spacer"></div>
+    <div class="sb-item" id="sbClock">--:--:--</div>
+    <div class="sb-item">200 kbpd · Arab Light</div>
+  </div>
+
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Détails</h3>
+      <button class="modal-close" id="modalClose">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+/* CORE */
+const $ = id => document.getElementById(id);
+const fmt = (x, d=2) => isFinite(x) ? x.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
+
+function toast(title, msg, type='info', dur=3000){
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<div><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  $('toasts').appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s,transform .3s'; el.style.opacity='0'; el.style.transform='translateX(20px)'; setTimeout(()=>el.remove(),300); }, dur);
+}
+
+/* NAVIGATION */
+const pageTitles = {
+  overview:'Vue d\'ensemble', tbp:'Courbe TBP', distillation:'Distillation',
+  thermo:'Thermodynamique', refining:'FCC / Reformage', economy:'Économie',
+  safety:'Sécurité HAZOP', specs:'Normes carburants', docs:'Documentation'
+};
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    const page = item.dataset.page;
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    item.classList.add('active');
+    $('page-'+page).classList.add('active');
+    $('crumbPage').textContent = pageTitles[page] || page;
+    setTimeout(()=>{
+      if(page==='tbp') calcTBP();
+      if(page==='thermo'){ calcAPI(); calcAnt(); }
+      if(page==='refining'){ calcFCC(); calcRef(); calcHDT(); }
+      if(page==='economy') calcEco();
+      if(page==='distillation') resizeDist();
+    }, 60);
+  });
+});
+
+/* TOOLTIP */
+const tooltip = $('tooltip');
+document.addEventListener('mouseover', e=>{
+  const el = e.target.closest('[data-tooltip]');
+  if(!el) return;
+  tooltip.innerHTML = el.dataset.tooltip;
+  tooltip.classList.add('visible');
+});
+document.addEventListener('mousemove', e=>{
+  if(!tooltip.classList.contains('visible')) return;
+  const w = tooltip.offsetWidth, h = tooltip.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if(x + w > innerWidth - 8) x = e.clientX - w - 14;
+  if(y + h > innerHeight - 8) y = e.clientY - h - 14;
+  tooltip.style.left = x+'px'; tooltip.style.top = y+'px';
+});
+document.addEventListener('mouseout', e=>{
+  if(!e.target.closest('[data-tooltip]')) return;
+  tooltip.classList.remove('visible');
+});
+
+/* MODAL */
+const modalData = {
+  'm-fuel': { title:'⛽ Carburants', body:`<p>Débouché principal (~70 % du baril) :</p><ul><li>Essence SP95/SP98 (moteurs essence)</li><li>Gazole EN 590 (moteurs diesel)</li><li>Jet A-1 (aviation civile)</li><li>GPL carburant</li><li>Fioul domestique</li></ul>` },
+  'm-petrochem': { title:'🧪 Pétrochimie', body:`<p>Naphta pétrochimique vapocraqué à 820 °C →</p><ul><li>Éthylène (polyéthylène)</li><li>Propylène (polypropylène)</li><li>Butadiène (caoutchouc)</li><li>Benzène, toluène, xylènes (BTX)</li></ul>` },
+  'm-lubricants': { title:'🛢️ Lubrifiants', body:`<p>Huiles de base :</p><ul><li>Groupe I (solvant) — API SN</li><li>Groupe II (hydrotraitement) — API SN+</li><li>Groupe III (hydrocraquage) — API SP</li><li>Groupe IV (PAO synthétique)</li></ul>` },
+  'm-asphalt': { title:'🛣️ Bitumes', body:`<p>Résidus sous vide (VR) →</p><ul><li>Bitume routier 35/50, 50/70, 70/100</li><li>Bitume oxydé (étanchéité)</li><li>Émulsions de bitume</li></ul>` },
+  h1:{ title:'HAZOP · Four topping : T° haute', body:`<p><strong>Déviation :</strong> T° &gt; 380 °C.</p><p><strong>Cause :</strong> Défaut brûleurs, emballement débit.</p><p><strong>Conséquence :</strong> Craquage thermique, cokage four.</p><h4>Barrières</h4><ul><li>TIC avec ESD automatique</li><li>Injection vapeur (quench)</li><li>Décokage en ligne</li></ul>` },
+  h2:{ title:'HAZOP · Colonne : pression haute', body:`<p><strong>Cause :</strong> Perte du condenseur / bouchage.</p><p><strong>Conséquence :</strong> PSV ouvre, rejet torchère.</p><h4>Barrières</h4><ul><li>PIC + 2 PSV redondants</li><li>Système flare KO drum</li><li>Arrêt débit alimentation</li></ul>` },
+  h3:{ title:'HAZOP · FCC riser : T° haute', body:`<p><strong>Cause :</strong> Excès de coke sur catalyseur régénéré.</p><p><strong>Conséquence :</strong> Désactivation zéolithe, baisse conversion.</p><h4>Barrières</h4><ul><li>Régénération à T° contrôlée</li><li>Ratio C/O ajusté</li><li>Analyse CO/CO₂</li></ul>` },
+  h4:{ title:'HAZOP · HDT : fuite H₂S', body:`<p><strong>Cause :</strong> Joint défaillant, corrosion humide.</p><p><strong>Conséquence :</strong> Intoxication mortelle.</p><h4>Barrières</h4><ul><li>Détecteurs H₂S (2oo3) à 5 ppm</li><li>EPI masque ADF</li><li>Ventilation forcée</li></ul>` },
+  h5:{ title:'HAZOP · Soufflante H₂ : arrêt', body:`<p><strong>Cause :</strong> Panne moteur, perte alimentation.</p><p><strong>Conséquence :</strong> Perte pression partielle H₂ → emballement.</p><h4>Barrières</h4><ul><li>Soufflante doublée</li><li>ESD automatique</li><li>Recyclage H₂ de secours</li></ul>` },
+  h6:{ title:'HAZOP · Torchère : débit excessif', body:`<p><strong>Cause :</strong> Panne unité en amont.</p><p><strong>Conséquence :</strong> Retombées liquides, fumées.</p><h4>Barrières</h4><ul><li>KO drum + seal drum</li><li>Pilote + vapeur d'appoint</li><li>Capacity design +30 %</li></ul>` }
+};
+document.addEventListener('click', e=>{
+  const el = e.target.closest('[data-modal]');
+  if(!el) return;
+  const d = modalData[el.dataset.modal];
+  if(!d) return;
+  $('modalTitle').textContent = d.title;
+  $('modalBody').innerHTML = d.body;
+  $('modalOverlay').classList.add('visible');
+});
+$('modalClose').addEventListener('click', ()=>$('modalOverlay').classList.remove('visible'));
+$('modalOverlay').addEventListener('click', e=>{ if(e.target===$('modalOverlay')) $('modalOverlay').classList.remove('visible'); });
+
+/* ============================================================
+   TBP CURVE
+   ============================================================ */
+// T(W) = 30 + 4.5*W + 0.017*W²  (brut moyen)
+const tbpT = W => 30 + 4.5*W + 0.017*W*W;
+const tbpW = T => {
+  const a=0.017, b=4.5, c=30-T;
+  const disc = b*b - 4*a*c;
+  if(disc < 0) return 0;
+  return Math.min(100, Math.max(0, (-b + Math.sqrt(disc))/(2*a)));
+};
+
+function calcTBP(){
+  const cp1 = parseFloat($('cp1').value);
+  const cp2 = parseFloat($('cp2').value);
+  const cp3 = parseFloat($('cp3').value);
+  const cp4 = parseFloat($('cp4').value);
+  $('cp1Val').textContent = cp1 + ' °C';
+  $('cp2Val').textContent = cp2 + ' °C';
+  $('cp3Val').textContent = cp3 + ' °C';
+  $('cp4Val').textContent = cp4 + ' °C';
+
+  const wg = tbpW(30), we = tbpW(cp1), wk = tbpW(cp2), wga = tbpW(cp3), wfi = tbpW(cp4);
+  const yGPL = wg, yEss = we-wg, yKer = wk-we, yGaz = wga-wk, yFio = wfi-wga, yRes = 100-wfi;
+
+  $('y-gpl').textContent = fmt(yGPL,1)+' %';
+  $('y-ess').textContent = fmt(yEss,1)+' %';
+  $('y-ker').textContent = fmt(yKer,1)+' %';
+  $('y-gaz').textContent = fmt(yGaz,1)+' %';
+  $('y-fio').textContent = fmt(yFio,1)+' %';
+  $('y-res').textContent = fmt(yRes,1)+' %';
+  $('t-ess').textContent = '30–'+cp1+' °C';
+  $('t-ker').textContent = cp1+'–'+cp2+' °C';
+  $('t-gaz').textContent = cp2+'–'+cp3+' °C';
+  $('t-fio').textContent = cp3+'–'+cp4+' °C';
+  $('t-res').textContent = '> '+cp4+' °C';
+
+  $('tot-mid').textContent = fmt(yKer+yGaz,1)+' %';
+  $('tot-light').textContent = fmt(yGPL+yEss,1)+' %';
+  $('tot-heavy').textContent = fmt(yRes,1)+' %';
+
+  drawTBPChart(cp1, cp2, cp3, cp4);
+}
+
+function drawTBPChart(cp1,cp2,cp3,cp4){
+  const c = $('chartTBP');
+  if(!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  if(rect.width===0) return;
+  c.width = rect.width*dpr; c.height = rect.height*dpr;
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = {l:50,r:14,t:14,b:28};
+  const w = W-pad.l-pad.r, h = H-pad.t-pad.b;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(214,224,236,.8)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<=5;i++){
+    const y = pad.t + h*i/5;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+w,y); ctx.stroke();
+    const x = pad.l + w*i/5;
+    ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+h); ctx.stroke();
+  }
+
+  // Fill zones
+  const zones = [
+    {T:30, color:'rgba(0,85,164,.15)'},
+    {T:cp1, color:'rgba(184,134,11,.15)'},
+    {T:cp2, color:'rgba(27,127,75,.15)'},
+    {T:cp3, color:'rgba(217,119,6,.15)'},
+    {T:cp4, color:'rgba(139,94,52,.15)'},
+    {T:700, color:'rgba(239,65,53,.15)'}
+  ];
+
+  // Draw curve
+  ctx.strokeStyle = '#003F7D';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for(let i=0;i<=100;i++){
+    const T = 30 + (700-30)*i/100;
+    const Wpct = tbpW(T);
+    const x = pad.l + w*Wpct/100;
+    const y = pad.t + h*(1 - (T-30)/(700-30));
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // Vertical cut lines
+  [cp1,cp2,cp3,cp4].forEach(T=>{
+    const Wpct = tbpW(T);
+    const x = pad.l + w*Wpct/100;
+    ctx.strokeStyle = 'rgba(239,65,53,.5)';
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t+h); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Axis labels
+  ctx.fillStyle = '#6B7F98';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('0', pad.l, H-8);
+  ctx.fillText('50', pad.l + w/2, H-8);
+  ctx.fillText('100 %', pad.l + w, H-8);
+  ctx.textAlign = 'right';
+  ctx.fillText('700°C', pad.l-6, pad.t+8);
+  ctx.fillText('365°C', pad.l-6, pad.t+h/2+4);
+  ctx.fillText('30°C', pad.l-6, pad.t+h);
+
+  // Axis titles
+  ctx.fillStyle = '#2C4A6E';
+  ctx.font = '700 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Rendement cumulé (% pds)', W/2, H-2);
+  ctx.save();
+  ctx.translate(12, H/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Température TBP (°C)', 0, 0);
+  ctx.restore();
+}
+
+['cp1','cp2','cp3','cp4'].forEach(id=>$(id).addEventListener('input',calcTBP));
+
+/* ============================================================
+   DISTILLATION
+   ============================================================ */
+const distCanvas = $('distCanvas');
+const distCtx = distCanvas.getContext('2d');
+let distRunning = false, distStart = 0, distLoopLast = 0;
+let distState = { topT: 38, reflux: 2.5, octane: 62, flow: 0 };
+
+function resizeDist(){
+  const dpr = window.devicePixelRatio || 1;
+  const rect = distCanvas.getBoundingClientRect();
+  if(rect.width===0) return;
+  distCanvas.width = rect.width*dpr; distCanvas.height = rect.height*dpr;
+  distCtx.setTransform(dpr,0,0,dpr,0,0);
+  drawDist();
+}
+
+function drawDist(){
+  const rect = distCanvas.getBoundingClientRect();
+  if(rect.width===0) return;
+  const W = rect.width, H = rect.height;
+  distCtx.clearRect(0,0,W,H);
+  distCtx.fillStyle = '#F7FAFD';
+  distCtx.fillRect(0,0,W,H);
+
+  const cx = W*0.4, colW = W*0.28;
+  const colTop = 30, colBot = H-40, colH = colBot-colTop;
+
+  // Column
+  distCtx.fillStyle = 'rgba(0,85,164,.05)';
+  distCtx.fillRect(cx-colW/2, colTop, colW, colH);
+  distCtx.strokeStyle = '#B8CCE4';
+  distCtx.lineWidth = 2;
+  distCtx.strokeRect(cx-colW/2, colTop, colW, colH);
+
+  // Trays
+  const N = 40;
+  for(let i=0;i<N;i++){
+    const y = colTop + colH*(i+0.5)/N;
+    distCtx.strokeStyle = 'rgba(184,204,228,.5)';
+    distCtx.lineWidth = 1;
+    distCtx.beginPath(); distCtx.moveTo(cx-colW/2, y); distCtx.lineTo(cx+colW/2, y); distCtx.stroke();
+  }
+
+  // Temperature gradient
+  const grad = distCtx.createLinearGradient(0, colTop, 0, colBot);
+  grad.addColorStop(0, 'rgba(14,116,144,.35)');
+  grad.addColorStop(0.3, 'rgba(184,134,11,.25)');
+  grad.addColorStop(0.6, 'rgba(27,127,75,.25)');
+  grad.addColorStop(0.85, 'rgba(217,119,6,.3)');
+  grad.addColorStop(1, 'rgba(239,65,53,.35)');
+  distCtx.fillStyle = grad;
+  distCtx.fillRect(cx-colW/2+2, colTop+2, colW-4, colH-4);
+
+  // Draw-offs
+  const draws = [
+    {y:0.06, label:'GPL', T:38, color:'#0E7490'},
+    {y:0.22, label:'Essence', T:120, color:'#B8860B'},
+    {y:0.42, label:'Kérosène', T:205, color:'#1B7F4B'},
+    {y:0.65, label:'Gasoil', T:290, color:'#D97706'}
+  ];
+  draws.forEach(d=>{
+    const y = colTop + colH*d.y;
+    distCtx.strokeStyle = d.color;
+    distCtx.lineWidth = 2;
+    distCtx.beginPath(); distCtx.moveTo(cx+colW/2, y); distCtx.lineTo(cx+colW/2+70, y); distCtx.stroke();
+    distCtx.fillStyle = d.color;
+    distCtx.beginPath();
+    distCtx.arc(cx+colW/2+72, y, 4, 0, Math.PI*2); distCtx.fill();
+    distCtx.font = '700 10px monospace';
+    distCtx.fillText(d.label, cx+colW/2+84, y+4);
+    distCtx.fillStyle = '#6B7F98';
+    distCtx.font = '10px monospace';
+    distCtx.fillText(d.T+' °C', cx+colW/2+84, y+16);
+  });
+
+  // Bottoms
+  distCtx.strokeStyle = '#EF4135';
+  distCtx.lineWidth = 3;
+  distCtx.beginPath(); distCtx.moveTo(cx, colBot); distCtx.lineTo(cx, colBot+20); distCtx.stroke();
+  distCtx.fillStyle = '#EF4135';
+  distCtx.font = '700 10px monospace';
+  distCtx.textAlign = 'center';
+  distCtx.fillText('Résidu → VS', cx, colBot+34);
+
+  // Feed inlet
+  const feedY = colTop + colH*0.78;
+  distCtx.strokeStyle = '#8B5E34';
+  distCtx.lineWidth = 3;
+  distCtx.beginPath(); distCtx.moveTo(cx-colW/2-40, feedY); distCtx.lineTo(cx-colW/2, feedY); distCtx.stroke();
+  distCtx.fillStyle = '#8B5E34';
+  distCtx.font = '700 10px monospace';
+  distCtx.textAlign = 'right';
+  distCtx.fillText('Brut 365 °C', cx-colW/2-46, feedY-6);
+  distCtx.fillText('100 kbpd', cx-colW/2-46, feedY+8);
+
+  // Top condenser
+  distCtx.fillStyle = '#6B7F98';
+  distCtx.font = '700 10px monospace';
+  distCtx.textAlign = 'center';
+  distCtx.fillText('Condenseur · tête '+distState.topT.toFixed(0)+' °C', cx, colTop-10);
+
+  // Reflux arrow
+  distCtx.strokeStyle = 'rgba(0,85,164,.5)';
+  distCtx.lineWidth = 1.5;
+  distCtx.setLineDash([3,3]);
+  distCtx.beginPath();
+  distCtx.moveTo(cx-colW/2-30, colTop+40);
+  distCtx.lineTo(cx-colW/2, colTop+40);
+  distCtx.stroke();
+  distCtx.setLineDash([]);
+
+  // Labels
+  distCtx.fillStyle = '#2C4A6E';
+  distCtx.font = '700 11px sans-serif';
+  distCtx.textAlign = 'center';
+  distCtx.fillText('COLONNE DE DISTILLATION ATMOSPHÉRIQUE', W/2, 16);
+}
+
+function updateDist(dt){
+  const t = (performance.now() - distStart)/1000;
+  distState.topT = 38 + Math.sin(t*0.5)*0.5;
+  distState.reflux = parseFloat($('refl').value);
+  distState.flow = Math.min(200, t*40);
+
+  // RON essence = f(reflux)
+  distState.octane = 55 + distState.reflux*3;
+
+  $('gaugeTop').textContent = distState.topT.toFixed(0)+' °C';
+  $('gaugeTopBar').style.width = (distState.topT/150*100)+'%';
+  $('gaugeRef').textContent = distState.reflux.toFixed(1);
+  $('gaugeRefBar').style.width = (distState.reflux/5*100)+'%';
+  $('gaugeOct').textContent = distState.octane.toFixed(0);
+  $('gaugeOctBar').style.width = Math.min(100, distState.octane)+'%';
+  $('gaugeFlow').textContent = distState.flow.toFixed(0)+' kbpd';
+  $('gaugeFlowBar').style.width = (distState.flow/200*100)+'%';
+  $('distTime').textContent = t.toFixed(1).replace('.',',');
+}
+
+function distLoop(){
+  if(!distRunning) return;
+  const now = performance.now();
+  const dt = Math.min(0.05, (now-distLoopLast)/1000);
+  distLoopLast = now;
+  updateDist(dt);
+  drawDist();
+  requestAnimationFrame(distLoop);
+}
+
+$('playDist').addEventListener('click', ()=>{
+  distRunning = !distRunning;
+  $('playDist').textContent = distRunning ? '⏸ Pause' : '▶ Démarrer';
+  if(distRunning){
+    distStart = performance.now();
+    distLoopLast = performance.now();
+    requestAnimationFrame(distLoop);
+    toast('Distillation démarrée', 'Montée en température du four', 'success', 2000);
+  }
+});
+
+$('resetDist').addEventListener('click', ()=>{
+  distRunning = false;
+  distState = { topT: 38, reflux: 2.5, octane: 62, flow: 0 };
+  $('playDist').textContent = '▶ Démarrer';
+  ['gaugeTop','gaugeRef','gaugeOct','gaugeFlow'].forEach(id=>$(id).style.width='0%');
+  $('gaugeTop').textContent = '38 °C';
+  $('gaugeRef').textContent = '2,5';
+  $('gaugeOct').textContent = '62';
+  $('gaugeFlow').textContent = '0 kbpd';
+  $('distTime').textContent = '0,0';
+  drawDist();
+});
+
+$('refl').addEventListener('input', ()=>{ distState.reflux = parseFloat($('refl').value); $('gaugeRef').textContent = distState.reflux.toFixed(1); });
+$('feed').addEventListener('input', ()=>{ $('gaugeFlow').textContent = parseFloat($('feed').value)+' kbpd'; });
+
+/* ============================================================
+   API / THERMO
+   ============================================================ */
+function calcAPI(){
+  const sg = parseFloat($('sg').value);
+  const api = 141.5/sg - 131.5;
+  const rho = sg*1000;
+  const bbl = 1000/(rho*0.158987);
+  $('sgVal').textContent = sg.toFixed(4);
+  $('apiVal').textContent = api.toFixed(1);
+  $('rhoVal').textContent = rho.toFixed(0);
+  $('bblVal').textContent = bbl.toFixed(2);
+  let cls='Moyen', clsC='yellow';
+  if(api>35){ cls='Léger'; clsC='green'; }
+  else if(api<25){ cls='Lourd'; clsC='red'; }
+  $('classVal').textContent = cls;
+  $('classVal').className = 'v-value '+clsC;
+  drawAPIChart();
+}
+
+function drawAPIChart(){
+  const c = $('chartAPI');
+  if(!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  if(rect.width===0) return;
+  c.width = rect.width*dpr; c.height = rect.height*dpr;
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = {l:40,r:12,t:12,b:24};
+  const w = W-pad.l-pad.r, h = H-pad.t-pad.b;
+
+  const sg = parseFloat($('sg').value);
+  const api = 141.5/sg - 131.5;
+
+  // Curve API vs SG
+  ctx.strokeStyle = '#0055A4';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(let i=0;i<=100;i++){
+    const s = 0.75 + 0.30*i/100;
+    const a = 141.5/s - 131.5;
+    const x = pad.l + w*i/100;
+    const y = pad.t + h*(1 - a/70);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // Marker
+  const mx = pad.l + w*(sg-0.75)/0.30;
+  const my = pad.t + h*(1 - api/70);
+  ctx.fillStyle = '#EF4135';
+  ctx.beginPath(); ctx.arc(mx,my,5,0,Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#6B7F98';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('0,75', pad.l, H-8);
+  ctx.fillText('0,90', pad.l + w/2, H-8);
+  ctx.fillText('1,05', pad.l + w, H-8);
+  ctx.textAlign = 'right';
+  ctx.fillText('70', pad.l-6, pad.t+8);
+  ctx.fillText('0', pad.l-6, pad.t+h);
+  ctx.textAlign = 'center';
+  ctx.font = '700 10px sans-serif';
+  ctx.fillText('SG', W/2, H-2);
+}
+
+$('sg').addEventListener('input', calcAPI);
+
+/* ANTOINE */
+const antoine = {
+  hexane:  {A:4.00266, B:1171.53, C:-48.78, name:'n-Hexane', Tb:341.9, M:86.18},
+  heptane: {A:4.02832, B:1268.636, C:-50.02, name:'n-Heptane', Tb:371.6, M:100.2},
+  octane:  {A:4.04867, B:1355.126, C:-63.63, name:'n-Octane', Tb:398.8, M:114.23},
+  decane:  {A:4.07857, B:1501.268, C:-78.67, name:'n-Décane', Tb:447.3, M:142.28},
+  benzene: {A:4.72583, B:1660.652, C:-1.461, name:'Benzène', Tb:353.2, M:78.11},
+  toluene: {A:4.23679, B:1426.448, C:-45.96, name:'Toluène', Tb:383.8, M:92.14},
+  water:   {A:5.40221, B:1838.675, C:-31.737, name:'Eau', Tb:373.15, M:18.02}
+};
+
+function calcAnt(){
+  const key = $('comp').value;
+  const c = antoine[key];
+  const T = parseFloat($('tAnt').value);
+  $('tAntVal').textContent = T + ' K';
+  const logP = c.A - c.B/(c.C+T);
+  const P = Math.pow(10, logP);
+  const state = P > 1.013 ? 'Vapeur' : (P > 0.1 ? 'Mélange' : 'Liquide');
+  const stateC = P > 1.013 ? 'green' : (P > 0.1 ? 'yellow' : 'red');
+
+  $('pAntVal').textContent = P.toFixed(P<0.1?3:2) + ' bar';
+  $('tbVal').textContent = c.Tb.toFixed(1) + ' K';
+  $('hvapVal').textContent = (88*(T/373)).toFixed(0) + ' kJ/mol';
+  $('stateVal').textContent = state;
+  $('stateVal').className = 'v-value '+stateC;
+
+  drawAntChart(c, T);
+}
+
+function drawAntChart(c, Top){
+  const cv = $('chartAnt');
+  if(!cv) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = cv.getBoundingClientRect();
+  if(rect.width===0) return;
+  cv.width = rect.width*dpr; cv.height = rect.height*dpr;
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = {l:44,r:12,t:12,b:24};
+  const w = W-pad.l-pad.r, h = H-pad.t-pad.b;
+
+  ctx.strokeStyle = 'rgba(214,224,236,.8)';
+  for(let i=0;i<=4;i++){
+    const y = pad.t + h*i/4;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+w,y); ctx.stroke();
+  }
+
+  const Tmin = Math.max(273, c.Tb-120), Tmax = c.Tb+120;
+  ctx.strokeStyle = '#0055A4';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for(let i=0;i<=100;i++){
+    const T = Tmin + (Tmax-Tmin)*i/100;
+    const P = Math.pow(10, c.A - c.B/(c.C+T));
+    const logP = Math.log10(Math.max(P, 0.001));
+    const x = pad.l + w*i/100;
+    const y = pad.t + h*(1 - (logP - (-3))/(3 - (-3)));
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // 1 bar line
+  ctx.strokeStyle = '#EF4135';
+  ctx.setLineDash([4,4]);
+  const y1bar = pad.t + h*(1 - (0 - (-3))/6);
+  ctx.beginPath(); ctx.moveTo(pad.l, y1bar); ctx.lineTo(pad.l+w, y1bar); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#6B7F98';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(Tmin.toFixed(0)+' K', pad.l, H-8);
+  ctx.fillText(((Tmin+Tmax)/2).toFixed(0)+' K', pad.l+w/2, H-8);
+  ctx.fillText(Tmax.toFixed(0)+' K', pad.l+w, H-8);
+  ctx.textAlign = 'right';
+  ctx.fillText('10³ bar', pad.l-6, pad.t+8);
+  ctx.fillText('1 bar', pad.l-6, y1bar+3);
+  ctx.fillText('10⁻³', pad.l-6, pad.t+h);
+}
+
+$('comp').addEventListener('change', calcAnt);
+$('tAnt').addEventListener('input', calcAnt);
+
+/* ============================================================
+   REFINING
+   ============================================================ */
+function calcFCC(){
+  const T = parseFloat($('fccT').value);
+  const CO = parseFloat($('fccC').value);
+  $('fccTVal').textContent = T + ' °C';
+  $('fccCVal').textContent = CO.toFixed(1);
+
+  // simplified conversion model
+  const X = 100 * (1 - Math.exp(-0.0012 * CO * (T-450)));
+  const conv = Math.max(30, Math.min(88, X));
+  const gas = conv * 0.66;
+  const lpg = conv * 0.22;
+  const coke = conv * 0.07;
+
+  $('fccConv').textContent = conv.toFixed(0) + ' %';
+  $('fccGas').textContent = gas.toFixed(0) + ' %';
+  $('fccLPG').textContent = lpg.toFixed(0) + ' %';
+  $('fccCoke').textContent = coke.toFixed(1) + ' %';
+  drawFCCChart(T, CO);
+}
+
+function drawFCCChart(T, CO){
+  const c = $('chartFCC');
+  if(!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  if(rect.width===0) return;
+  c.width = rect.width*dpr; c.height = rect.height*dpr;
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = {l:40,r:12,t:12,b:24};
+  const w = W-pad.l-pad.r, h = H-pad.t-pad.b;
+
+  ctx.strokeStyle = 'rgba(214,224,236,.8)';
+  for(let i=0;i<=4;i++){
+    const y = pad.t + h*i/4;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+w,y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#6B4FBB';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for(let i=0;i<=100;i++){
+    const tt = 490 + 70*i/100;
+    const x = 100*(1 - Math.exp(-0.0012*CO*(tt-450)));
+    const cv = Math.max(30, Math.min(88, x));
+    const px = pad.l + w*i/100;
+    const py = pad.t + h*(1 - cv/100);
+    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // marker
+  const X = Math.max(30, Math.min(88, 100*(1 - Math.exp(-0.0012*CO*(T-450)))));
+  const mx = pad.l + w*(T-490)/70;
+  const my = pad.t + h*(1 - X/100);
+  ctx.fillStyle = '#EF4135';
+  ctx.beginPath(); ctx.arc(mx,my,5,0,Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#6B7F98';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('490°C', pad.l, H-8);
+  ctx.fillText('525°C', pad.l+w/2, H-8);
+  ctx.fillText('560°C', pad.l+w, H-8);
+  ctx.textAlign = 'right';
+  ctx.fillText('88%', pad.l-6, pad.t+8);
+  ctx.fillText('30%', pad.l-6, pad.t+h);
+}
+
+function calcRef(){
+  const T = parseFloat($('refT').value);
+  const P = parseFloat($('refP').value);
+  $('refTVal').textContent = T + ' °C';
+  $('refPVal').textContent = P + ' bar';
+
+  // RON = f(T, P)
+  const RON = Math.max(85, Math.min(102, 60 + 0.28*(T-470) - 0.15*(P-15)));
+  const yieldC5 = Math.max(75, Math.min(92, 95 - 0.10*(T-470) - 0.2*(P-15)));
+  const h2 = Math.max(1.5, Math.min(4.5, 2.5 + 0.04*(T-470)));
+  const aro = Math.max(45, Math.min(75, 55 + 0.4*(T-470)));
+
+  $('refRON').textContent = RON.toFixed(0);
+  $('refYield').textContent = yieldC5.toFixed(0) + ' %';
+  $('refH2').textContent = h2.toFixed(1) + ' %';
+  $('refAro').textContent = aro.toFixed(0) + ' %';
+  drawRefChart(T, P);
+}
+
+function drawRefChart(T, P){
+  const c = $('chartRef');
+  if(!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  if(rect.width===0) return;
+  c.width = rect.width*dpr; c.height = rect.height*dpr;
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = {l:40,r:12,t:12,b:24};
+  const w = W-pad.l-pad.r, h = H-pad.t-pad.b;
+
+  ctx.strokeStyle = 'rgba(214,224,236,.8)';
+  for(let i=0;i<=4;i++){
+    const y = pad.t + h*i/4;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+w,y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#6B4FBB';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for(let i=0;i<=100;i++){
+    const tt = 470 + 60*i/100;
+    const RON = Math.max(85, Math.min(102, 60 + 0.28*(tt-470) - 0.15*(P-15)));
+    const px = pad.l + w*i/100;
+    const py = pad.t + h*(1 - (RON-85)/20);
+    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  const RON = Math.max(85, Math.min(102, 60 + 0.28*(T-470) - 0.15*(P-15)));
+  const mx = pad.l + w*(T-470)/60;
+  const my = pad.t + h*(1 - (RON-85)/20);
+  ctx.fillStyle = '#EF4135';
+  ctx.beginPath(); ctx.arc(mx,my,5,0,Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#6B7F98';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('470°C', pad.l, H-8);
+  ctx.fillText('500°C', pad.l+w/2, H-8);
+  ctx.fillText('530°C', pad.l+w, H-8);
+  ctx.textAlign = 'right';
+  ctx.fillText('102', pad.l-6, pad.t+8);
+  ctx.fillText('85', pad.l-6, pad.t+h);
+}
+
+function calcHDT(){
+  const P = parseFloat($('hdtP').value);
+  const T = parseFloat($('hdtT').value);
+  $('hdtPVal').textContent = P + ' bar';
+  $('hdtTVal').textContent = T + ' °C';
+
+  // HDS conversion f(P, T) - simplified
+  const k = 0.5 + 0.005*(T-350) + 0.03*(P-30)/10;
+  const conv = Math.min(99.9, 100*(1 - Math.exp(-k)));
+  const S = 1800 * (1 - conv/100);
+  const h2 = 100 + 0.3*(P-30) + 0.5*(T-350);
+
+  $('hdtS').textContent = S < 1 ? S.toFixed(1) + ' ppm' : S.toFixed(0) + ' ppm';
+  $('hdtConv').textContent = conv.toFixed(1) + ' %';
+  $('hdtH2').textContent = h2.toFixed(0) + ' Nm³/m³';
+  const ok = S <= 10;
+  $('hdtOk').textContent = ok ? 'OUI' : 'NON';
+  $('hdtOk').className = 'v-value ' + (ok ? 'green' : 'red');
+}
+
+$('fccT').addEventListener('input', calcFCC);
+$('fccC').addEventListener('input', calcFCC);
+$('refT').addEventListener('input', calcRef);
+$('refP').addEventListener('input', calcRef);
+$('hdtP').addEventListener('input', calcHDT);
+$('hdtT').addEventListener('input', calcHDT);
+
+/* ============================================================
+   ECONOMY
+   ============================================================ */
+function calcEco(){
+  const pBr = parseFloat($('pBr').value);
+  const pEss = parseFloat($('pEss').value);
+  const pGaz = parseFloat($('pGaz').value);
+  const pFio = parseFloat($('pFio').value);
+
+  $('pBrVal').textContent = fmt(pBr,1)+' $/bbl';
+  $('pEssVal').textContent = fmt(pEss,1)+' $/bbl';
+  $('pGazVal').textContent = fmt(pGaz,1)+' $/bbl';
+  $('pFioVal').textContent = fmt(pFio,1)+' $/bbl';
+
+  // Crack spread 3-2-1
+  const crack = (2*pEss + 1*pGaz - 3*pBr)/3;
+  const opex = 4.2;
+  const net = crack - opex;
+  const be = 3*pBr / 3 - 0; // simplification
+
+  $('crack').textContent = fmt(crack,1)+' $/bbl';
+  $('margeNette').textContent = fmt(net,1)+' $/bbl';
+  $('breakeven').textContent = fmt(pBr,0)+' $/bbl';
+
+  drawMarginChart(pEss, pGaz, pBr, pFio);
+}
+
+function drawMarginChart(pEss, pGaz, pBr, pFio){
+  const c = $('chartMargin');
+  if(!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  if(rect.width===0) return;
+  c.width = rect.width*dpr; c.height = rect.height*dpr;
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = {l:110,r:80,t:12,b:12};
+  const w = W-pad.l-pad.r, h = H-pad.t-pad.b;
+
+  const items = [
+    {label:'Brent', val:pBr, color:'#8B5E34'},
+    {label:'Essence 95', val:pEss, color:'#B8860B'},
+    {label:'Gasoil EN590', val:pGaz, color:'#D97706'},
+    {label:'Fioul 1%S', val:pFio, color:'#EF4135'}
+  ];
+  const max = Math.max(...items.map(i=>i.val), 100);
+  const rowH = h/items.length;
+
+  items.forEach((item,i)=>{
+    const y = pad.t + i*rowH + rowH*0.15;
+    const barH = rowH*0.7;
+    const barW = w*(item.val/max);
+    ctx.fillStyle = '#EAF1F8';
+    ctx.fillRect(pad.l, y, w, barH);
+    ctx.fillStyle = item.color;
+    ctx.fillRect(pad.l, y, barW, barH);
+    ctx.fillStyle = '#2C4A6E';
+    ctx.font = '700 11px monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(item.label, pad.l-10, y+barH/2);
+    ctx.fillStyle = '#0B2545';
+    ctx.textAlign = 'left';
+    ctx.fillText(fmt(item.val,1)+' $', pad.l+w+10, y+barH/2);
+  });
+}
+
+['pBr','pEss','pGaz','pFio'].forEach(id=>$(id).addEventListener('input', calcEco));
+
+/* ============================================================
+   SAFETY – H2S
+   ============================================================ */
+$('h2s').addEventListener('input', ()=>{
+  const v = parseFloat($('h2s').value);
+  $('h2sVal').textContent = v + ' ppm';
+  $('h2sConc').textContent = v.toFixed(0) + ' ppm';
+  $('h2sBar').style.width = Math.min(100, v/500*100) + '%';
+
+  const status = $('h2sStatus');
+  const note = $('h2sNote');
+
+  if(v < 5){
+    status.textContent = 'Système nominal';
+    status.style.color = 'var(--text-3)';
+    $('h2sBar').style.background = 'var(--fr-blue)';
+    note.className = 'alert info';
+    note.innerHTML = `<span class="alert-icon">ℹ️</span><div>Concentration sous le TLV 8 h (5 ppm). Situation normale.</div>`;
+  } else if(v < 50){
+    status.textContent = '⚠️ Alerte TLV';
+    status.style.color = 'var(--yellow)';
+    $('h2sBar').style.background = 'var(--yellow)';
+    note.className = 'alert warn';
+    note.innerHTML = `<span class="alert-icon">⚠️</span><div><strong>TLV atteint (5 ppm).</strong> Port du masque ADF obligatoire, ventilation renforcée.</div>`;
+  } else if(v < 300){
+    status.textContent = '🚨 Évacuation';
+    status.style.color = 'var(--fr-red)';
+    $('h2sBar').style.background = 'var(--fr-red)';
+    note.className = 'alert danger';
+    note.innerHTML = `<span class="alert-icon">🚨</span><div><strong>Évacuation immédiate.</strong> H₂S &gt; 50 ppm → perte d'odorat, danger mortel.</div>`;
+  } else {
+    status.textContent = '💀 Mortel';
+    status.style.color = 'var(--fr-red)';
+    $('h2sBar').style.background = 'var(--fr-red)';
+    note.className = 'alert danger';
+    note.innerHTML = `<span class="alert-icon">💀</span><div><strong>MORTEL.</strong> &gt; 300 ppm → arrêt respiratoire immédiat, pas d'alerte olfactive. ARI obligatoire.</div>`;
+  }
+});
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+$('exportBtn').addEventListener('click', ()=>{
+  const data = {
+    timestamp: new Date().toISOString(),
+    crude: { API: $('apiVal').textContent, SG: parseFloat($('sg').value) },
+    cuts: {
+      essence: $('y-ess').textContent,
+      kerosene: $('y-ker').textContent,
+      gasoil: $('y-gaz').textContent,
+      residue: $('y-res').textContent
+    },
+    economy: {
+      Brent: parseFloat($('pBr').value),
+      crack: $('crack').textContent,
+      marge: $('margeNette').textContent
+    }
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `petroleum-${Date.now()}.json`; a.click();
+  URL.revokeObjectURL(url);
+  toast('Export réussi','Données sauvegardées','success');
+});
+
+$('printBtn').addEventListener('click', ()=>window.print());
+
+/* CLOCK */
+function updateClock(){ $('sbClock').textContent = new Date().toLocaleTimeString('fr-FR'); }
+setInterval(updateClock, 1000); updateClock();
+
+/* KEYBOARD */
+document.addEventListener('keydown', e=>{
+  if(e.ctrlKey || e.metaKey){
+    if(e.key==='p'){ e.preventDefault(); $('printBtn').click(); }
+    if(e.key==='e'){ e.preventDefault(); $('exportBtn').click(); }
+  }
+  if(e.key==='Escape') $('modalOverlay').classList.remove('visible');
+});
+
+/* INIT */
+function init(){
+  calcTBP();
+  calcAPI();
+  calcAnt();
+  calcFCC();
+  calcRef();
+  calcHDT();
+  calcEco();
+  setTimeout(()=>{
+    resizeDist();
+    calcTBP();
+    calcAPI();
+    calcAnt();
+    calcFCC();
+    calcRef();
+    calcEco();
+  }, 200);
+}
+window.addEventListener('resize', ()=>{
+  drawTBPChart(parseFloat($('cp1').value), parseFloat($('cp2').value), parseFloat($('cp3').value), parseFloat($('cp4').value));
+  drawAPIChart();
+  drawAntChart(antoine[$('comp').value], parseFloat($('tAnt').value));
+  drawFCCChart(parseFloat($('fccT').value), parseFloat($('fccC').value));
+  drawRefChart(parseFloat($('refT').value), parseFloat($('refP').value));
+  drawMarginChart(parseFloat($('pEss').value), parseFloat($('pGaz').value), parseFloat($('pBr').value), parseFloat($('pFio').value));
+  drawDist();
+});
+init();
+
+setTimeout(()=>{
+  toast('Petroleum Refining Console','Topping 200 kbpd · Ctrl+E export · Ctrl+P impression','info',5000);
+}, 800);
+</script>
+</body>
+</html>
